@@ -1,0 +1,20 @@
+[project]
+name = "thoughtcli"
+authors = [
+    {name = "Marcin Szymanski", email = "marcin.szymanski@crugroup.com"},
+]
+description = "CLI for Thoughtspot"
+requires-python = ">=3.10"
+dynamic = ["version"]
+
+dependencies = [
+    "thoughtspot_rest_api_v1>=1.5.7",
+    "click>=8.1.7",
+    "prompt_toolkit>=3.0.43",
+]
+
+[project.scripts]
+thcli = "thoughtcli:cli"
+
+[tool.black]
+line-length = 120
