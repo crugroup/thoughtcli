@@ -1,6 +1,9 @@
 import os
 import yaml
+import logging
 from pathlib import Path
+import json
+import tempfile
 
 import click
 from prompt_toolkit.shortcuts import (
@@ -10,16 +13,28 @@ from prompt_toolkit.shortcuts import (
     input_dialog,
 )
 
-from thoughtspot_rest_api_v1.tsrestapiv2 import TSRestApiV2
+# from thoughtspot_rest_api_v1.tsrestapiv2 import TSRestApiV2
+# TODO: remove once Thoughtspot fix their stuff
+
+from thoughtcli.ts_overwrite import TSRestApiV2Org as TSRestApiV2
 from thoughtspot_rest_api_v1.tsrestapiv1 import (
     TSRestApiV1,
     MetadataTypes,
     MetadataSubtypes,
 )
 
+logger = logging.getLogger("thoughtcli")
+logger.setLevel(logging.DEBUG)
+logfile = tempfile.NamedTemporaryFile(delete=False, prefix="thoughtcli-", suffix=".log")
+handler = logging.FileHandler(logfile.name)
+handler.setLevel(logging.DEBUG)
+logger.addHandler(handler)
+
 
 @click.command()
 def cli():
+    click.echo("Writing log to: " + logfile.name)
+
     config = read_config()
 
     profile = radiolist_dialog(
@@ -46,8 +61,10 @@ def cli():
             title="Main Menu",
             text="Select an option",
             values=[
-                ("git_commit", "Git Commit"),
                 ("test", "Test connection"),
+                ("git_commit", "Git commit"),
+                ("git_deploy_validate", "Git deployment validate"),
+                ("git_deploy", "Git deploy"),
             ],
         ).run()
     ) is not None:
@@ -57,6 +74,10 @@ def cli():
             result = test_connection(ts_client_v2, active_profile)
         elif main_manu == "git_commit":
             result = git_commit(ts_client_v1, ts_client_v2, active_profile)
+        elif main_manu == "git_deploy_validate":
+            result = git_deploy_validate(ts_client_v2, active_profile)
+        elif main_manu == "git_deploy":
+            result = git_deploy(ts_client_v2, active_profile)
 
         message_dialog(text=result).run()
 
@@ -85,7 +106,9 @@ def read_config():
 def test_connection(ts_client_v2: TSRestApiV2, active_profile):
     try:
         ts_client_v2.auth_session_login(
-            username=active_profile["username"], password=active_profile["password"]
+            username=active_profile["username"],
+            password=active_profile["password"],
+            org_identifier=active_profile.get("org_identifier"),
         )
         ts_client_v2.auth_session_logout()
         return "Connection Successful"
@@ -99,8 +122,11 @@ def git_commit(ts_client_v1: TSRestApiV1, ts_client_v2: TSRestApiV2, active_prof
             username=active_profile["username"], password=active_profile["password"]
         )
 
-        if active_profile.get("org"):
-            ts_client_v1.session_orgs_put(active_profile["org"])
+        if active_profile.get("org_identifier"):
+            ts_client_v1.session_orgs_put(active_profile["org_identifier"])
+
+        def format_name(item):
+            return item["name"] + " [" + item["id"] + "]"
 
         tables = ts_client_v1.metadata_listobjectheaders(
             object_type=MetadataTypes.TABLE,
@@ -108,14 +134,14 @@ def git_commit(ts_client_v1: TSRestApiV1, ts_client_v2: TSRestApiV2, active_prof
             sort="name",
         )
 
-        def format_name(item):
-            return item["name"] + " [" + item["id"] + "]"
-
-        selected_tables = checkboxlist_dialog(
-            title="Select Tables and Views",
-            text="Select tables and views to commit",
-            values=[(table["id"], format_name(table)) for table in tables],
-        ).run()
+        selected_tables = (
+            checkboxlist_dialog(
+                title="Select Tables and Views",
+                text="Select tables and views to commit",
+                values=[(table["id"], format_name(table)) for table in tables],
+            ).run()
+            or []
+        )
 
         worksheets = ts_client_v1.metadata_listobjectheaders(
             object_type=MetadataTypes.WORKSHEET,
@@ -123,49 +149,69 @@ def git_commit(ts_client_v1: TSRestApiV1, ts_client_v2: TSRestApiV2, active_prof
             sort="name",
         )
 
-        selected_worksheets = checkboxlist_dialog(
-            title="Select Worksheets",
-            text="Select worksheets to commit",
-            values=[
-                (worksheet["id"], format_name(worksheet)) for worksheet in worksheets
-            ],
-        ).run()
+        selected_worksheets = (
+            checkboxlist_dialog(
+                title="Select Worksheets",
+                text="Select worksheets to commit",
+                values=[
+                    (worksheet["id"], format_name(worksheet))
+                    for worksheet in worksheets
+                ],
+            ).run()
+            or []
+        )
 
         liveboards = ts_client_v1.metadata_listobjectheaders(
             object_type=MetadataTypes.LIVEBOARD, sort="name"
         )
 
-        selected_liveboards = checkboxlist_dialog(
-            title="Select Liveboards",
-            text="Select liveboards to commit",
-            values=[
-                (liveboard["id"], format_name(liveboard)) for liveboard in liveboards
-            ],
-        ).run()
+        selected_liveboards = (
+            checkboxlist_dialog(
+                title="Select Liveboards",
+                text="Select liveboards to commit",
+                values=[
+                    (liveboard["id"], format_name(liveboard))
+                    for liveboard in liveboards
+                ],
+            ).run()
+            or []
+        )
         ts_client_v1.session_logout()
 
         ts_client_v2.auth_session_login(
-            username=active_profile["username"], password=active_profile["password"]
+            username=active_profile["username"],
+            password=active_profile["password"],
+            org_identifier=active_profile.get("org_identifier"),
         )
 
         comment = input_dialog(
             title="Commit message", text="Please enter commit message:"
         ).run()
 
+        if not comment:
+            return "Cancelled"
+
+        selected_metadata = (
+            [
+                {"identifier": table_id, "type": MetadataTypes.TABLE}
+                for table_id in selected_tables
+            ]
+            + [
+                {"identifier": worksheet_id, "type": MetadataTypes.WORKSHEET}
+                for worksheet_id in selected_worksheets
+            ]
+            + [
+                {"identifier": liveboard_id, "type": "LIVEBOARD"}
+                for liveboard_id in selected_liveboards
+            ]
+        )
+
+        if not selected_metadata:
+            return "No metadata selected"
+
         ts_client_v2.vcs_git_branches_commit(
             request={
-                "metadata": [
-                    {"identifier": table_id, "type": MetadataTypes.TABLE}
-                    for table_id in selected_tables
-                ]
-                + [
-                    {"identifier": worksheet_id, "type": MetadataTypes.WORKSHEET}
-                    for worksheet_id in selected_worksheets
-                ]
-                + [
-                    {"identifier": liveboard_id, "type": MetadataTypes.LIVEBOARD}
-                    for liveboard_id in selected_liveboards
-                ],
+                "metadata": selected_metadata,
                 "comment": comment,
             }
         )
@@ -175,3 +221,94 @@ def git_commit(ts_client_v1: TSRestApiV1, ts_client_v2: TSRestApiV2, active_prof
         return "Commit Successful"
     except Exception as e:
         return f"Commit Failed: {e}"
+
+
+def git_deploy_validate(ts_client_v2: TSRestApiV2, active_profile):
+    try:
+        source_branch = input_dialog(
+            title="Source branch", text="Please input the source branch:"
+        ).run()
+
+        if not source_branch:
+            return "Cancelled"
+
+        target_branch = input_dialog(
+            title="Target branch", text="Please input the target branch:"
+        ).run()
+
+        if not target_branch:
+            return "Cancelled"
+
+        ts_client_v2.auth_session_login(
+            username=active_profile["username"],
+            password=active_profile["password"],
+            org_identifier=active_profile.get("org_identifier"),
+        )
+
+        response = ts_client_v2.vcs_git_branches_validate(
+            source_branch_name=source_branch, target_branch_name=target_branch
+        )
+
+        ts_client_v2.auth_session_logout()
+
+        response_str = json.dumps(response, indent=4)
+        logger.info(response_str)
+        return f"Deployment validation successful: {response_str}"
+    except Exception as e:
+        return f"Deployment validation failed: {e}"
+
+
+def git_deploy(ts_client_v2: TSRestApiV2, active_profile):
+    try:
+        deploy_branch = input_dialog(
+            title="Deploy branch", text="Please input the deploy branch:"
+        ).run()
+
+        if not deploy_branch:
+            return "Cancelled"
+
+        deploy_type = radiolist_dialog(
+            title="Deploy type",
+            text="Select deploy type",
+            values=[
+                ("DELTA", "Delta"),
+                ("FULL", "Full"),
+            ],
+        ).run()
+
+        if not deploy_type:
+            return "Cancelled"
+
+        deploy_policy = radiolist_dialog(
+            title="Deploy policy",
+            text="Select deploy policy",
+            values=[
+                ("ALL_OR_NONE", "All or none"),
+                ("VALIDATE_ONLY", "Validate only"),
+            ],
+        ).run()
+
+        if not deploy_policy:
+            return "Cancelled"
+
+        ts_client_v2.auth_session_login(
+            username=active_profile["username"],
+            password=active_profile["password"],
+            org_identifier=active_profile.get("org_identifier"),
+        )
+
+        response = ts_client_v2.vcs_git_commits_deploy(
+            request={
+                "branch_name": deploy_branch,
+                "deploy_type": deploy_type,
+                "deploy_policy": deploy_policy,
+            }
+        )
+
+        ts_client_v2.auth_session_logout()
+
+        response_str = json.dumps(response, indent=4)
+        logger.info(response_str)
+        return f"Deployment successful: {response_str}"
+    except Exception as e:
+        return f"Deployment failed: {e}"
