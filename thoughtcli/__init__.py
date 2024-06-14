@@ -5,6 +5,7 @@ from pathlib import Path
 import json
 import tempfile
 
+
 import click
 from prompt_toolkit.shortcuts import (
     radiolist_dialog,
@@ -12,11 +13,10 @@ from prompt_toolkit.shortcuts import (
     checkboxlist_dialog,
     input_dialog,
 )
+from requests.exceptions import HTTPError
 
-# from thoughtspot_rest_api_v1.tsrestapiv2 import TSRestApiV2
-# TODO: remove once Thoughtspot fix their stuff
+from thoughtspot_rest_api_v1.tsrestapiv2 import TSRestApiV2
 
-from thoughtcli.ts_overwrite import TSRestApiV2Org as TSRestApiV2
 from thoughtspot_rest_api_v1.tsrestapiv1 import (
     TSRestApiV1,
     MetadataTypes,
@@ -219,8 +219,8 @@ def git_commit(ts_client_v1: TSRestApiV1, ts_client_v2: TSRestApiV2, active_prof
         ts_client_v2.auth_session_logout()
 
         return "Commit Successful"
-    except Exception as e:
-        return f"Commit Failed: {e}"
+    except HTTPError as e:
+        return f"Commit Failed: {e}\n{e.response.text}"
 
 
 def git_deploy_validate(ts_client_v2: TSRestApiV2, active_profile):
@@ -254,8 +254,8 @@ def git_deploy_validate(ts_client_v2: TSRestApiV2, active_profile):
         response_str = json.dumps(response, indent=4)
         logger.info(response_str)
         return f"Deployment validation successful: {response_str}"
-    except Exception as e:
-        return f"Deployment validation failed: {e}"
+    except HTTPError as e:
+        return f"Deployment validation failed: {e}\n{e.response.text}"
 
 
 def git_deploy(ts_client_v2: TSRestApiV2, active_profile):
@@ -310,5 +310,5 @@ def git_deploy(ts_client_v2: TSRestApiV2, active_profile):
         response_str = json.dumps(response, indent=4)
         logger.info(response_str)
         return f"Deployment successful: {response_str}"
-    except Exception as e:
-        return f"Deployment failed: {e}"
+    except HTTPError as e:
+        return f"Deployment failed: {e}\n{e.response.text}"
