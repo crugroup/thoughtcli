@@ -192,7 +192,7 @@ def git_commit(ts_connection: TSConnection):
             if not selected_metadata:
                 return "No metadata selected"
 
-            ts_client_v2.vcs_git_branches_commit(
+            ts_client_v2.client.vcs_git_branches_commit(
                 request={
                     "metadata": selected_metadata,
                     "comment": comment,
@@ -221,7 +221,7 @@ def git_deploy_validate(ts_connection: TSConnection):
             return "Cancelled"
 
         with ts_connection.v2 as ts_client_v2:
-            response = ts_client_v2.vcs_git_branches_validate(
+            response = ts_client_v2.client.vcs_git_branches_validate(
                 source_branch_name=source_branch, target_branch_name=target_branch
             )
 
@@ -266,7 +266,7 @@ def git_deploy(ts_connection: TSConnection):
             return "Cancelled"
 
         with ts_connection.v2 as ts_client_v2:
-            response = ts_client_v2.vcs_git_commits_deploy(
+            response = ts_client_v2.client.vcs_git_commits_deploy(
                 request={
                     "branch_name": deploy_branch,
                     "deploy_type": deploy_type,

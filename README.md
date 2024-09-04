@@ -29,7 +29,7 @@ profiles:
   dev:
     server_url: https://your domain.thoughtspot.cloud
     username: user@domain.com
-    password: yourpassword
+    secret_key: aasdf1234
     org_identifier: 123456789
 ```
 
