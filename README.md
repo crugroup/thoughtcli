@@ -22,6 +22,18 @@ profiles:
     org_identifier: 123456789
 ```
 
+If you are using a secret key the configuration file should look like this:
+
+```yaml
+profiles:
+  dev:
+    server_url: https://your domain.thoughtspot.cloud
+    username: user@domain.com
+    password: yourpassword
+    org_identifier: 123456789
+```
+
+
 You can also set the patho to the `config.yaml` file with `THOUGHTCLI_CONFIG_PATH` environment variable.
 
 ## Usage
