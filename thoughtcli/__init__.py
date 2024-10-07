@@ -105,9 +105,6 @@ def test_connection(ts_connection: TSConnection):
 
 
 def git_commit(ts_connection: TSConnection):
-    def format_name(item):
-        return item["name"] + " [" + item["id"] + "]"
-
     def format_name_v2(item):
         return item["metadata_id"], item["metadata_name"] + " [" + item[
             "metadata_id"
@@ -145,6 +142,7 @@ def git_commit(ts_connection: TSConnection):
                         for table in tables
                         if table["metadata_header"]["type"]
                         == MetadataSubtypes.WORKSHEET
+                        or table["metadata_header"]["type"] == "TABLE"
                     ],
                 ).run()
                 or []
