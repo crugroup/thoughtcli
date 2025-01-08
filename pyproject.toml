@@ -5,10 +5,10 @@ authors = [
 ]
 description = "CLI for Thoughtspot"
 requires-python = ">=3.10"
-version = "0.4.0"
+version = "0.5.0"
 
 dependencies = [
-    "thoughtspot_rest_api_v1>=1.7.2",
+    "thoughtspot_rest_api_v1>=1.8.2",
     "click>=8.1.7",
     "prompt_toolkit>=3.0.43",
 ]

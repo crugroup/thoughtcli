@@ -257,6 +257,7 @@ def git_deploy(ts_connection: TSConnection):
             values=[
                 ("ALL_OR_NONE", "All or none"),
                 ("VALIDATE_ONLY", "Validate only"),
+                ("PARTIAL", "Partial"),
             ],
         ).run()
 
