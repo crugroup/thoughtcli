@@ -1,4 +1,4 @@
-# ThougthCLI
+# ThoughtCLI
 
 CLI for Thoughtspot. Wouldn't be needed if Thoughtspot Devs didn't take 6
 months to implement a GUI for Git support. It still isn't done. This took 5 hours to build.
