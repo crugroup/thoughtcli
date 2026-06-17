@@ -10,6 +10,7 @@ class TSProfile:
     org_identifier: int | None = None
     secret_key: str | None = None
 
+
 class Auth:
     def __init__(self, profile: TSProfile):
         self.profile = profile
