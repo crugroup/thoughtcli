@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from thoughtspot_rest_api_v1.tsrestapiv2 import TSRestApiV2
+from thoughtspot_rest_api.tsrestapiv2 import TSRestApiV2
 
 
 @dataclass
