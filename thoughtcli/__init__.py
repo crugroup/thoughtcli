@@ -14,11 +14,11 @@ from prompt_toolkit.shortcuts import (
 )
 from requests.exceptions import HTTPError
 
-from thoughtspot_rest_api_v1.tsrestapiv1 import (
+from thoughtspot_rest_api.tsrestapiv1 import (
     MetadataTypes,
     MetadataSubtypes,
 )
-from thoughtspot_rest_api_v1.tsrestapiv2 import TSTypesV2
+from thoughtspot_rest_api.tsrestapiv2 import TSTypesV2
 
 from thoughtcli.connection import TSProfile, TSConnection
 

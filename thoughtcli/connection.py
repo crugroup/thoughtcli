@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from thoughtspot_rest_api_v1.tsrestapiv2 import TSRestApiV2
+from thoughtspot_rest_api.tsrestapiv2 import TSRestApiV2
 
 
 @dataclass
@@ -11,13 +11,13 @@ class TSProfile:
     secret_key: str | None = None
 
 
-class TSConnection:
+class Auth:
     def __init__(self, profile: TSProfile):
         self.profile = profile
         self.user_pass_auth = profile.username and profile.password
 
 
-class V2Connection(TSConnection):
+class V2Connection(Auth):
     def __init__(self, profile: TSProfile):
         super().__init__(profile)
         self.client = TSRestApiV2(server_url=profile.server_url)
