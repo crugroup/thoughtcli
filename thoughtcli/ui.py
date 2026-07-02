@@ -2,6 +2,9 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, RadioButton, RadioSet, SelectionList, Static
+from textual.widgets._toggle_button import ToggleButton
+
+ToggleButton.BUTTON_INNER = "✓"
 
 _DIALOG_CSS = """
     align: center middle;
