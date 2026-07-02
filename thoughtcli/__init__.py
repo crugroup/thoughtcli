@@ -8,10 +8,7 @@ import click
 import yaml
 from requests.exceptions import HTTPError
 from textual import work
-from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical
-from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, RadioButton, RadioSet, SelectionList, Static
+from textual.app import App
 
 from thoughtspot_rest_api.tsrestapiv1 import (
     MetadataTypes,
@@ -20,6 +17,12 @@ from thoughtspot_rest_api.tsrestapiv1 import (
 from thoughtspot_rest_api.tsrestapiv2 import TSTypesV2
 
 from thoughtcli.connection import TSProfile, TSConnection
+from thoughtcli.ui import (
+    RadioListDialog,
+    CheckboxListDialog,
+    InputDialog,
+    MessageDialog,
+)
 
 logger = logging.getLogger("thoughtcli")
 logger.setLevel(logging.DEBUG)
@@ -27,171 +30,6 @@ logfile = tempfile.NamedTemporaryFile(delete=False, prefix="thoughtcli-", suffix
 handler = logging.FileHandler(logfile.name)
 handler.setLevel(logging.DEBUG)
 logger.addHandler(handler)
-
-_DIALOG_CSS = """
-    align: center middle;
-
-    Vertical {
-        width: 70;
-        height: auto;
-        max-height: 80vh;
-        background: $panel;
-        border: thick $primary;
-        padding: 1 2;
-    }
-
-    #dialog-title {
-        text-style: bold;
-        width: 100%;
-        content-align: center middle;
-        margin-bottom: 1;
-    }
-
-    Horizontal {
-        height: auto;
-        align: right middle;
-        margin-top: 1;
-    }
-
-    Button {
-        margin-left: 1;
-    }
-"""
-
-
-class RadioListDialog(ModalScreen[str | None]):
-    """Modal dialog for selecting a single option from a list."""
-
-    DEFAULT_CSS = f"RadioListDialog {{{_DIALOG_CSS}}}"
-
-    def __init__(self, title: str, text: str, values: list[tuple[str, str]]):
-        super().__init__()
-        self._dialog_title = title
-        self._text = text
-        self._values = values
-        self._user_selected = False
-
-    def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Label(self._dialog_title, id="dialog-title")
-            yield Label(self._text)
-            with RadioSet():
-                for _value, label in self._values:
-                    yield RadioButton(label)
-            with Horizontal():
-                yield Button("OK", id="ok")
-                yield Button("Cancel", id="cancel")
-
-    def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
-        self._user_selected = True
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "ok":
-            if not self._user_selected:
-                self.notify("Please select an option.", severity="error")
-                return
-            radio_set = self.query_one(RadioSet)
-            if self._values:
-                self.dismiss(self._values[radio_set.pressed_index][0])
-            else:
-                self.dismiss(None)
-        else:
-            self.dismiss(None)
-
-    def on_key(self, event) -> None:
-        if event.key == "escape":
-            self.dismiss(None)
-
-
-class CheckboxListDialog(ModalScreen[list[str]]):
-    """Modal dialog for selecting multiple options from a list."""
-
-    DEFAULT_CSS = f"CheckboxListDialog {{{_DIALOG_CSS}}}"
-
-    def __init__(self, title: str, text: str, values: list[tuple[str, str]]):
-        super().__init__()
-        self._dialog_title = title
-        self._text = text
-        self._values = values
-
-    def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Label(self._dialog_title, id="dialog-title")
-            yield Label(self._text)
-            yield SelectionList(*[(label, value) for value, label in self._values])
-            with Horizontal():
-                yield Button("OK", id="ok")
-                yield Button("Cancel", id="cancel")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "ok":
-            self.dismiss(list(self.query_one(SelectionList).selected))
-        else:
-            self.dismiss([])
-
-    def on_key(self, event) -> None:
-        if event.key == "escape":
-            self.dismiss([])
-
-
-class InputDialog(ModalScreen[str | None]):
-    """Modal dialog for text input."""
-
-    DEFAULT_CSS = f"InputDialog {{{_DIALOG_CSS}}}"
-
-    def __init__(self, title: str, text: str):
-        super().__init__()
-        self._dialog_title = title
-        self._text = text
-
-    def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Label(self._dialog_title, id="dialog-title")
-            yield Label(self._text)
-            yield Input(id="text-input")
-            with Horizontal():
-                yield Button("OK", id="ok")
-                yield Button("Cancel", id="cancel")
-
-    def _submit(self) -> None:
-        value = self.query_one(Input).value.strip()
-        self.dismiss(value if value else None)
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        if event.button.id == "ok":
-            self._submit()
-        else:
-            self.dismiss(None)
-
-    def on_input_submitted(self, event: Input.Submitted) -> None:
-        self._submit()
-
-    def on_key(self, event) -> None:
-        if event.key == "escape":
-            self.dismiss(None)
-
-
-class MessageDialog(ModalScreen[None]):
-    """Modal dialog for displaying a result message."""
-
-    DEFAULT_CSS = f"MessageDialog {{{_DIALOG_CSS}}} MessageDialog Horizontal {{ align: center middle; }}"
-
-    def __init__(self, text: str):
-        super().__init__()
-        self._text = text
-
-    def compose(self) -> ComposeResult:
-        with Vertical():
-            yield Static(self._text, id="message")
-            with Horizontal():
-                yield Button("OK", id="ok")
-
-    def on_button_pressed(self, event: Button.Pressed) -> None:
-        self.dismiss()
-
-    def on_key(self, event) -> None:
-        if event.key in ("escape", "enter"):
-            self.dismiss()
 
 
 class ThoughtCLIApp(App[None]):
@@ -246,7 +84,7 @@ class ThoughtCLIApp(App[None]):
 
             result = "Unknown option"
             if action == "test":
-                result = _test_connection(ts_connection)
+                result = self._test_connection(ts_connection)
             elif action == "git_commit":
                 result = await self._git_commit(ts_connection)
             elif action == "git_deploy_validate":
@@ -260,7 +98,9 @@ class ThoughtCLIApp(App[None]):
 
     async def _git_commit(self, ts_connection: TSConnection) -> str:
         def format_name_v2(item):
-            return item["metadata_id"], item["metadata_name"] + " [" + item["metadata_id"] + "]"
+            return item["metadata_id"], item["metadata_name"] + " [" + item[
+                "metadata_id"
+            ] + "]"
 
         try:
             with ts_connection.v2 as ts_client_v2:
@@ -279,7 +119,8 @@ class ThoughtCLIApp(App[None]):
                         values=[
                             format_name_v2(table)
                             for table in tables
-                            if table["metadata_header"]["type"] == MetadataSubtypes.TABLE
+                            if table["metadata_header"]["type"]
+                            == MetadataSubtypes.TABLE
                         ],
                     )
                 )
@@ -291,7 +132,8 @@ class ThoughtCLIApp(App[None]):
                         values=[
                             format_name_v2(table)
                             for table in tables
-                            if table["metadata_header"]["type"] == MetadataSubtypes.WORKSHEET
+                            if table["metadata_header"]["type"]
+                            == MetadataSubtypes.WORKSHEET
                             or table["metadata_header"]["type"] == "TABLE"
                         ],
                     )
@@ -314,16 +156,27 @@ class ThoughtCLIApp(App[None]):
                 )
 
                 comment = await self.push_screen_wait(
-                    InputDialog(title="Commit message", text="Please enter commit message:")
+                    InputDialog(
+                        title="Commit message", text="Please enter commit message:"
+                    )
                 )
 
                 if not comment:
                     return "Cancelled"
 
                 selected_metadata = (
-                    [{"identifier": table_id, "type": MetadataTypes.TABLE} for table_id in selected_tables]
-                    + [{"identifier": ws_id, "type": MetadataTypes.WORKSHEET} for ws_id in selected_worksheets]
-                    + [{"identifier": lb_id, "type": TSTypesV2.LIVEBOARD} for lb_id in selected_liveboards]
+                    [
+                        {"identifier": table_id, "type": MetadataTypes.TABLE}
+                        for table_id in selected_tables
+                    ]
+                    + [
+                        {"identifier": ws_id, "type": MetadataTypes.WORKSHEET}
+                        for ws_id in selected_worksheets
+                    ]
+                    + [
+                        {"identifier": lb_id, "type": TSTypesV2.LIVEBOARD}
+                        for lb_id in selected_liveboards
+                    ]
                 )
 
                 if not selected_metadata:
@@ -340,13 +193,17 @@ class ThoughtCLIApp(App[None]):
     async def _git_deploy_validate(self, ts_connection: TSConnection) -> str:
         try:
             source_branch = await self.push_screen_wait(
-                InputDialog(title="Source branch", text="Please input the source branch:")
+                InputDialog(
+                    title="Source branch", text="Please input the source branch:"
+                )
             )
             if not source_branch:
                 return "Cancelled"
 
             target_branch = await self.push_screen_wait(
-                InputDialog(title="Target branch", text="Please input the target branch:")
+                InputDialog(
+                    title="Target branch", text="Please input the target branch:"
+                )
             )
             if not target_branch:
                 return "Cancelled"
@@ -365,7 +222,9 @@ class ThoughtCLIApp(App[None]):
     async def _git_deploy(self, ts_connection: TSConnection) -> str:
         try:
             deploy_branch = await self.push_screen_wait(
-                InputDialog(title="Deploy branch", text="Please input the deploy branch:")
+                InputDialog(
+                    title="Deploy branch", text="Please input the deploy branch:"
+                )
             )
             if not deploy_branch:
                 return "Cancelled"
@@ -409,6 +268,13 @@ class ThoughtCLIApp(App[None]):
         except HTTPError as e:
             return f"Deployment failed: {e}\n{e.response.text}"
 
+    def _test_connection(self, ts_connection: TSConnection) -> str:
+        try:
+            with ts_connection.v2:
+                return "Connection Successful"
+        except Exception as e:
+            return f"Connection Failed: {e}"
+
 
 @click.command()
 def cli():
@@ -434,11 +300,3 @@ def read_config():
         config = yaml.safe_load(file)
 
     return config
-
-
-def _test_connection(ts_connection: TSConnection) -> str:
-    try:
-        with ts_connection.v2:
-            return "Connection Successful"
-    except Exception as e:
-        return f"Connection Failed: {e}"
