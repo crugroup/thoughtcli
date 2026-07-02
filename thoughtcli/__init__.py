@@ -103,6 +103,7 @@ def test_connection(ts_connection: TSConnection):
     except Exception as e:
         return f"Connection Failed: {e}"
 
+test_connection.__test__ = False
 
 def git_commit(ts_connection: TSConnection):
     def format_name_v2(item):
