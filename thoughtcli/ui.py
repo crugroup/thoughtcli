@@ -7,12 +7,24 @@ _DIALOG_CSS = """
     align: center middle;
 
     Vertical {
-        width: 70;
+        width: 50%;
         height: auto;
         max-height: 80vh;
         background: $panel;
         border: thick $primary;
         padding: 1 2;
+    }
+
+    RadioSet {
+        max-height: 50vh;
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+
+    SelectionList {
+        max-height: 50vh;
+        overflow-y: auto;
+        overflow-x: auto;
     }
 
     #dialog-title {
