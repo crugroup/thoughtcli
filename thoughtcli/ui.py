@@ -12,7 +12,7 @@ _DIALOG_CSS = """
     Vertical {
         width: 50%;
         height: auto;
-        max-height: 80vh;
+        max-height: 100vh;
         background: $panel;
         border: thick $primary;
         padding: 1 2;
