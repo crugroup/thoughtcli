@@ -38,7 +38,7 @@ async def test_radio_list_selects_second_option():
 
 
 async def test_radio_list_ok_without_selection():
-    app = DialogTestApp(RadioListDialog("Title", "Choose", [("a", "A")]))
+    app = DialogTestApp(RadioListDialog("Title", "Choose", [("a", "A"), ("b", "B")]))
     async with app.run_test() as pilot:
         await pilot.click("#ok")
     assert app.result is None
@@ -108,9 +108,9 @@ async def test_input_dialog_submit():
 async def test_input_dialog_enter_submits():
     app = DialogTestApp(InputDialog("Commit", "Enter message:"))
     async with app.run_test() as pilot:
-        pilot.app.screen.query_one("#text-input", Input).value = "my message"
+        pilot.app.screen.query_one("#text-input", Input).value = "my commit message"
         await pilot.press("enter")
-    assert app.result == "my message"
+    assert app.result == "my commit message"
 
 
 async def test_input_dialog_empty_returns_none():
