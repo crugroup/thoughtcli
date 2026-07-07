@@ -10,7 +10,7 @@ version = "0.7.0"
 dependencies = [
     "thoughtspot_rest_api==2.0.3",
     "click>=8.1.7",
-    "textual>=0.30.0",
+    "textual>=8.2.8",
     "pyyaml>=6.0.3"
 ]
 
