@@ -2,6 +2,7 @@
 name = "thoughtcli"
 authors = [
     {name = "Marcin Szymanski", email = "marcin.szymanski@crugroup.com"},
+    {name = "Jeremy Dang", email = "jeremy.dang@crugroup.com"}
 ]
 description = "CLI for Thoughtspot"
 requires-python = ">=3.10"
