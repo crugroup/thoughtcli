@@ -15,8 +15,17 @@ dependencies = [
     "pyyaml>=6.0.3"
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
 [project.scripts]
 thcli = "thoughtcli:cli"
 
 [tool.black]
 line-length = 120
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
