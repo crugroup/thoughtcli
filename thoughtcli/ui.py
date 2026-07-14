@@ -3,6 +3,7 @@ from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, RadioButton, RadioSet, SelectionList, Static
 from textual.widgets._toggle_button import ToggleButton
+from rich.markup import escape
 
 ToggleButton.BUTTON_INNER = "✓"
 
@@ -67,7 +68,7 @@ class RadioListDialog(ModalScreen[str | None]):
             yield Label(self._text)
             with RadioSet():
                 for _value, label in self._values:
-                    yield RadioButton(label)
+                    yield RadioButton(escape(label))
             with Horizontal():
                 yield Button("OK", id="ok")
                 yield Button("Cancel", id="cancel")
@@ -108,7 +109,7 @@ class CheckboxListDialog(ModalScreen[list[str]]):
         with Vertical():
             yield Label(self._dialog_title, id="dialog-title")
             yield Label(self._text)
-            yield SelectionList(*[(label, value) for value, label in self._values])
+            yield SelectionList(*[(escape(label), value) for value, label in self._values])
             with Horizontal():
                 yield Button("OK", id="ok")
                 yield Button("Cancel", id="cancel")
