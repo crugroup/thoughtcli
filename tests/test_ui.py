@@ -1,10 +1,16 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Input, SelectionList
-from thoughtcli.ui import RadioListDialog, CheckboxListDialog, InputDialog, MessageDialog
+from thoughtcli.ui import (
+    RadioListDialog,
+    CheckboxListDialog,
+    InputDialog,
+    MessageDialog,
+)
 
 
 class DialogTestApp(App):
     """Helper app that opens a dialog and stores the result."""
+
     def __init__(self, dialog):
         super().__init__()
         self._dialog = dialog
@@ -17,6 +23,7 @@ class DialogTestApp(App):
         def capture(result):
             self.result = result
             self.exit()
+
         self.push_screen(self._dialog, callback=capture)
 
 

@@ -1,7 +1,15 @@
 from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
-from textual.widgets import Button, Input, Label, RadioButton, RadioSet, SelectionList, Static
+from textual.widgets import (
+    Button,
+    Input,
+    Label,
+    RadioButton,
+    RadioSet,
+    SelectionList,
+    Static,
+)
 from textual.widgets._toggle_button import ToggleButton
 from rich.markup import escape
 
@@ -109,7 +117,9 @@ class CheckboxListDialog(ModalScreen[list[str]]):
         with Vertical():
             yield Label(self._dialog_title, id="dialog-title")
             yield Label(self._text)
-            yield SelectionList(*[(escape(label), value) for value, label in self._values])
+            yield SelectionList(
+                *[(escape(label), value) for value, label in self._values]
+            )
             with Horizontal():
                 yield Button("OK", id="ok")
                 yield Button("Cancel", id="cancel")
@@ -160,6 +170,32 @@ class InputDialog(ModalScreen[str | None]):
     def on_key(self, event) -> None:
         if event.key == "escape":
             self.dismiss(None)
+
+
+class ConfirmDialog(ModalScreen[bool]):
+    """Modal dialog for confirming an action."""
+
+    DEFAULT_CSS = f"ConfirmDialog {{{_DIALOG_CSS}}}"
+
+    def __init__(self, title: str, text: str):
+        super().__init__()
+        self._dialog_title = title
+        self._text = text
+
+    def compose(self) -> ComposeResult:
+        with Vertical():
+            yield Label(self._dialog_title, id="dialog-title")
+            yield Static(self._text)
+            with Horizontal():
+                yield Button("Confirm", id="ok")
+                yield Button("Cancel", id="cancel")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        self.dismiss(event.button.id == "ok")
+
+    def on_key(self, event) -> None:
+        if event.key == "escape":
+            self.dismiss(False)
 
 
 class MessageDialog(ModalScreen[None]):
