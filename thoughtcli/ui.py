@@ -1,5 +1,5 @@
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import (
     Button,
@@ -39,6 +39,12 @@ _DIALOG_CSS = """
         overflow-x: auto;
     }
 
+    VerticalScroll {
+        height: auto;
+        max-height: 50vh;
+        overflow-y: auto;
+    }
+
     #dialog-title {
         text-style: bold;
         width: 100%;
@@ -48,7 +54,7 @@ _DIALOG_CSS = """
 
     Horizontal {
         height: auto;
-        align: right middle;
+        align: center middle;
         margin-top: 1;
     }
 
@@ -185,7 +191,8 @@ class ConfirmDialog(ModalScreen[bool]):
     def compose(self) -> ComposeResult:
         with Vertical():
             yield Label(self._dialog_title, id="dialog-title")
-            yield Static(self._text)
+            with VerticalScroll():
+                yield Static(self._text)
             with Horizontal():
                 yield Button("Confirm", id="ok")
                 yield Button("Cancel", id="cancel")
@@ -201,7 +208,7 @@ class ConfirmDialog(ModalScreen[bool]):
 class MessageDialog(ModalScreen[None]):
     """Modal dialog for displaying a result message."""
 
-    DEFAULT_CSS = f"MessageDialog {{{_DIALOG_CSS}}} MessageDialog Horizontal {{ align: center middle; }}"
+    DEFAULT_CSS = f"MessageDialog {{{_DIALOG_CSS}}}"
 
     def __init__(self, text: str):
         super().__init__()

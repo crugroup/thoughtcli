@@ -17,7 +17,7 @@ from thoughtspot_rest_api.tsrestapiv1 import (
 from thoughtspot_rest_api.tsrestapiv2 import TSTypesV2
 
 from thoughtcli.connection import TSProfile, TSConnection
-from thoughtcli.sync import SyncMetadata, fetch_connection_options
+from thoughtcli.sync import SyncMetadata, fetch_connection_options, fetch_connection_tables
 from thoughtcli.ui import (
     RadioListDialog,
     CheckboxListDialog,
@@ -74,7 +74,7 @@ class ThoughtCLIApp(App[None]):
                     text="Select an option",
                     values=[
                         ("test", "Test connection"),
-                        ("sync_tables", "Sync Tables descriptions"),
+                        ("sync_tables", "Sync tables descriptions"),
                         ("git_commit", "Git commit"),
                         ("git_deploy_validate", "Git deployment validate"),
                         ("git_deploy", "Git deploy"),
@@ -313,11 +313,11 @@ class ThoughtCLIApp(App[None]):
                 # Ask about sync scope
                 sync_scope = await self.push_screen_wait(
                     RadioListDialog(
-                        title="Sync Scope",
-                        text="Select what to sync",
+                        title="Choose Tables to Sync",
+                        text="Would you like to sync specific tables, or every table in this connection?",
                         values=[
-                            ("selected_tables", "Selected tables"),
-                            ("all_tables", "All tables"),
+                            ("selected_tables", "Choose specific tables"),
+                            ("all_tables", "Sync all tables"),
                         ],
                     )
                 )
@@ -325,24 +325,15 @@ class ThoughtCLIApp(App[None]):
                 if sync_scope is None:
                     return "Cancelled"
 
-                # Fetch tables available for selection
-                tables_response = ts_client_v2.client.metadata_search(
-                    {
-                        "metadata": [
-                            {"type": "LOGICAL_TABLE", "subtypes": "ONE_TO_ONE_LOGICAL"}
-                        ],
-                        "record_size": ts_connection.metadata_max_size,
-                        "sort_options": {"field_name": "NAME"},
-                    }
+                # Fetch tables available for selection, scoped to the selected connection
+                table_options = fetch_connection_tables(
+                    ts_client_v2.client,
+                    selected_connection_id,
+                    ts_connection.metadata_max_size,
                 )
 
-                table_options = [
-                    (table["metadata_id"], table["metadata_name"])
-                    for table in tables_response
-                ]
-
                 if not table_options:
-                    return "No tables available to sync"
+                    return "No tables available to sync for this connection"
 
                 if sync_scope == "all_tables":
                     selected_table_ids = [table_id for table_id, _ in table_options]
