@@ -16,8 +16,8 @@ from thoughtspot_rest_api.tsrestapiv1 import (
 )
 from thoughtspot_rest_api.tsrestapiv2 import TSTypesV2
 
-from thoughtcli.connection import TSProfile, TSConnection
-from thoughtcli.sync import SyncMetadata, fetch_connection_options, fetch_connection_tables
+from thoughtcli.connection import TSProfile, TSConnection,fetch_connection_options, fetch_connection_tables
+from thoughtcli.sync import SyncMetadata
 from thoughtcli.ui import (
     RadioListDialog,
     CheckboxListDialog,
