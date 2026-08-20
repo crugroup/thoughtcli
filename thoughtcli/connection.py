@@ -53,7 +53,7 @@ class TSConnection:
         self.v2 = V2Connection(profile)
 
 
-def fetch_connection_options(client, record_size: int) -> list:
+def fetch_connection_options(client: TSRestApiV2, record_size: int) -> list:
     """Fetch available connections as (id, name) options for a selection dialog"""
     try:
         connections_response = client.connection_search(
@@ -66,7 +66,7 @@ def fetch_connection_options(client, record_size: int) -> list:
     return [(conn["id"], conn["name"]) for conn in connections_response]
 
 
-def fetch_connection_tables(client, connection_id: str, record_size: int) -> list:
+def fetch_connection_tables(client: TSRestApiV2, connection_id: str, record_size: int) -> list:
     """Fetch (id, name) options for the tables belonging to a single connection.
 
     Uses connection_search scoped to connection_id so that "all tables" only

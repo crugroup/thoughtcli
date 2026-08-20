@@ -4,6 +4,7 @@ from thoughtcli.ui import (
     RadioListDialog,
     CheckboxListDialog,
     InputDialog,
+    ConfirmDialog,
     MessageDialog,
 )
 
@@ -139,6 +140,27 @@ async def test_input_dialog_escape_returns_none():
     async with app.run_test() as pilot:
         await pilot.press("escape")
     assert app.result is None
+
+
+async def test_confirm_dialog_confirm():
+    app = DialogTestApp(ConfirmDialog("Delete", "Are you sure?"))
+    async with app.run_test() as pilot:
+        await pilot.click("#ok")
+    assert app.result is True
+
+
+async def test_confirm_dialog_cancel():
+    app = DialogTestApp(ConfirmDialog("Delete", "Are you sure?"))
+    async with app.run_test() as pilot:
+        await pilot.click("#cancel")
+    assert app.result is False
+
+
+async def test_confirm_dialog_escape_returns_false():
+    app = DialogTestApp(ConfirmDialog("Delete", "Are you sure?"))
+    async with app.run_test() as pilot:
+        await pilot.press("escape")
+    assert app.result is False
 
 
 async def test_message_dialog_closes_on_ok():

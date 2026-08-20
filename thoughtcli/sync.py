@@ -8,8 +8,6 @@ logger = logging.getLogger("thoughtcli")
 DEFAULT_SYNC_ATTRIBUTES = ["DESCRIPTION"]
 
 
-
-
 class SyncMetadata:
     """Helper class to handle table metadata resyncing"""
 
@@ -32,6 +30,7 @@ class SyncMetadata:
         Returns:
             The parsed API response.
         """
+        # Fail fast on missing required inputs before hitting the API
         if not connection_id:
             raise ValueError("connection_id is required")
 
@@ -47,7 +46,9 @@ class SyncMetadata:
         endpoint = f"connections/{connection_id}/resync-metadata"
 
         logger.info(
-            f"Resyncing metadata for connection {connection_id}: {json.dumps(payload)}"
+            "Resyncing metadata for connection %s: %s",
+            connection_id,
+            json.dumps(payload),
         )
 
         return self.client.post_request(endpoint=endpoint, request=payload)
