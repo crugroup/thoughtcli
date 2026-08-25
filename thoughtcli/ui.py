@@ -1,5 +1,5 @@
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widgets import Button, Input, Label, RadioButton, RadioSet, SelectionList, Static
 from textual.widgets._toggle_button import ToggleButton
@@ -13,7 +13,7 @@ _DIALOG_CSS = """
     Vertical {
         width: 50%;
         height: auto;
-        max-height: 100vh;
+        max-height: 75vh;
         background: $panel;
         border: thick $primary;
         padding: 1 2;
@@ -165,7 +165,11 @@ class InputDialog(ModalScreen[str | None]):
 class MessageDialog(ModalScreen[None]):
     """Modal dialog for displaying a result message."""
 
-    DEFAULT_CSS = f"MessageDialog {{{_DIALOG_CSS}}} MessageDialog Horizontal {{ align: center middle; }}"
+    DEFAULT_CSS = (
+        f"MessageDialog {{{_DIALOG_CSS}}} "
+        "MessageDialog Horizontal { align: center middle; } "
+        "MessageDialog VerticalScroll { max-height: 70vh; overflow-y: auto; overflow-x: auto; }"
+    )
 
     def __init__(self, text: str):
         super().__init__()
@@ -173,7 +177,8 @@ class MessageDialog(ModalScreen[None]):
 
     def compose(self) -> ComposeResult:
         with Vertical():
-            yield Static(self._text, id="message")
+            with VerticalScroll():
+                yield Static(self._text, id="message")
             with Horizontal():
                 yield Button("OK", id="ok")
 
