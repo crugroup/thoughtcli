@@ -66,16 +66,20 @@ class ThoughtCLIApp(App[None]):
         ts_connection = TSConnection(TSProfile(**self._config["profiles"][profile]))
 
         while True:
+            menu_values = [("test", "Test connection")]
+            if profile == "dev":
+                menu_values.append(("git_commit", "Git commit"))
+            if profile != "dev":
+                menu_values += [
+                    ("git_deploy_validate", "Git deployment validate"),
+                    ("git_deploy", "Git deploy"),
+                ]
+
             action = await self.push_screen_wait(
                 RadioListDialog(
                     title="Main Menu",
                     text="Select an option",
-                    values=[
-                        ("test", "Test connection"),
-                        ("git_commit", "Git commit"),
-                        ("git_deploy_validate", "Git deployment validate"),
-                        ("git_deploy", "Git deploy"),
-                    ],
+                    values=menu_values,
                 )
             )
 
@@ -83,8 +87,10 @@ class ThoughtCLIApp(App[None]):
                 break
 
             result = "Unknown option"
+            compact = False
             if action == "test":
                 result = self._test_connection(ts_connection)
+                compact = True
             elif action == "git_commit":
                 result = await self._git_commit(ts_connection)
             elif action == "git_deploy_validate":
@@ -92,7 +98,7 @@ class ThoughtCLIApp(App[None]):
             elif action == "git_deploy":
                 result = await self._git_deploy(ts_connection)
 
-            await self.push_screen_wait(MessageDialog(text=result))
+            await self.push_screen_wait(MessageDialog(text=result, compact=compact))
 
         self.exit()
 
@@ -244,8 +250,8 @@ class ThoughtCLIApp(App[None]):
                     title="Deploy policy",
                     text="Select deploy policy",
                     values=[
-                        ("ALL_OR_NONE", "All or none"),
                         ("VALIDATE_ONLY", "Validate only"),
+                        ("ALL_OR_NONE", "All or none"),
                         ("PARTIAL", "Partial"),
                     ],
                 )
