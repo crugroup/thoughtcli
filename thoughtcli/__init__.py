@@ -66,14 +66,12 @@ class ThoughtCLIApp(App[None]):
         ts_connection = TSConnection(TSProfile(**self._config["profiles"][profile]))
 
         while True:
-            menu_values = [("test", "Test connection")]
-            if profile == "dev":
-                menu_values.append(("git_commit", "Git commit"))
-            if profile != "dev":
-                menu_values += [
-                    ("git_deploy_validate", "Git deployment validate"),
-                    ("git_deploy", "Git deploy"),
-                ]
+            menu_values = [
+                ("test", "Test connection"),
+                ("git_commit", "Git commit"),
+                ("git_deploy_validate", "Git deployment validate"),
+                ("git_deploy", "Git deploy"),
+            ]
 
             action = await self.push_screen_wait(
                 RadioListDialog(
