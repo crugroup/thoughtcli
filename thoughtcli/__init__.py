@@ -74,7 +74,7 @@ class ThoughtCLIApp(App[None]):
                     text="Select an option",
                     values=[
                         ("test", "Test connection"),
-                        ("sync_tables", "Sync tables descriptions"),
+                        ("sync_tables", "Sync table descriptions"),
                         ("git_commit", "Git commit"),
                         ("git_deploy_validate", "Git deployment validate"),
                         ("git_deploy", "Git deploy"),
