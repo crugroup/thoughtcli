@@ -1,10 +1,17 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Input, SelectionList
-from thoughtcli.ui import RadioListDialog, CheckboxListDialog, InputDialog, MessageDialog
+from thoughtcli.ui import (
+    RadioListDialog,
+    CheckboxListDialog,
+    InputDialog,
+    ConfirmDialog,
+    MessageDialog,
+)
 
 
 class DialogTestApp(App):
     """Helper app that opens a dialog and stores the result."""
+
     def __init__(self, dialog):
         super().__init__()
         self._dialog = dialog
@@ -17,6 +24,7 @@ class DialogTestApp(App):
         def capture(result):
             self.result = result
             self.exit()
+
         self.push_screen(self._dialog, callback=capture)
 
 
@@ -132,6 +140,27 @@ async def test_input_dialog_escape_returns_none():
     async with app.run_test() as pilot:
         await pilot.press("escape")
     assert app.result is None
+
+
+async def test_confirm_dialog_confirm():
+    app = DialogTestApp(ConfirmDialog("Delete", "Are you sure?"))
+    async with app.run_test() as pilot:
+        await pilot.click("#ok")
+    assert app.result is True
+
+
+async def test_confirm_dialog_cancel():
+    app = DialogTestApp(ConfirmDialog("Delete", "Are you sure?"))
+    async with app.run_test() as pilot:
+        await pilot.click("#cancel")
+    assert app.result is False
+
+
+async def test_confirm_dialog_escape_returns_false():
+    app = DialogTestApp(ConfirmDialog("Delete", "Are you sure?"))
+    async with app.run_test() as pilot:
+        await pilot.press("escape")
+    assert app.result is False
 
 
 async def test_message_dialog_closes_on_ok():

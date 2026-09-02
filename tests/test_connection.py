@@ -26,7 +26,9 @@ def test_tsconnection_custom_metadata_max_size():
 
 
 def test_auth_uses_userpass_when_both_set():
-    p = TSProfile(server_url="https://example.thoughtspot.cloud", username="u", password="p")
+    p = TSProfile(
+        server_url="https://example.thoughtspot.cloud", username="u", password="p"
+    )
     conn = V2Connection(p)
     assert conn.user_pass_auth
 
@@ -39,7 +41,12 @@ def test_auth_no_userpass_when_missing():
 
 @pytest.mark.parametrize("org_identifier", [None, 42])
 def test_v2connection_enter_uses_session_login(org_identifier):
-    p = TSProfile(server_url="https://example.thoughtspot.cloud", username="u", password="p", org_identifier=org_identifier)
+    p = TSProfile(
+        server_url="https://example.thoughtspot.cloud",
+        username="u",
+        password="p",
+        org_identifier=org_identifier,
+    )
     conn = V2Connection(p)
     conn.client = MagicMock()
     conn.__enter__()
@@ -50,7 +57,12 @@ def test_v2connection_enter_uses_session_login(org_identifier):
 
 @pytest.mark.parametrize("org_identifier", [None, 42])
 def test_v2connection_enter_uses_token(org_identifier):
-    p = TSProfile(server_url="https://example.thoughtspot.cloud", username="u", secret_key="sk", org_identifier=org_identifier)
+    p = TSProfile(
+        server_url="https://example.thoughtspot.cloud",
+        username="u",
+        secret_key="sk",
+        org_identifier=org_identifier,
+    )
     conn = V2Connection(p)
     conn.client = MagicMock()
     conn.client.auth_token_full.return_value = {"token": "test"}
@@ -62,7 +74,9 @@ def test_v2connection_enter_uses_token(org_identifier):
 
 
 def test_v2connection_exit_calls_logout():
-    p = TSProfile(server_url="https://example.thoughtspot.cloud", username="u", password="p")
+    p = TSProfile(
+        server_url="https://example.thoughtspot.cloud", username="u", password="p"
+    )
     conn = V2Connection(p)
     conn.client = MagicMock()
     conn.__exit__(None, None, None)
