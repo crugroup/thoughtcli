@@ -64,7 +64,6 @@ _DIALOG_CSS = """
 
         & > .option-list--option {
             text-style: bold;
-            padding: 1 0;
         }
     }
 
