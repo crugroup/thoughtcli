@@ -16,10 +16,12 @@ from thoughtspot_rest_api.tsrestapiv1 import (
 )
 from thoughtspot_rest_api.tsrestapiv2 import TSTypesV2
 
-from thoughtcli.connection import TSProfile, TSConnection
+from thoughtcli.connection import TSProfile, TSConnection,fetch_connection_options, fetch_connection_tables
+from thoughtcli.sync import SyncMetadata
 from thoughtcli.ui import (
     RadioListDialog,
     CheckboxListDialog,
+    ConfirmDialog,
     InputDialog,
     MessageDialog,
 )
@@ -68,6 +70,7 @@ class ThoughtCLIApp(App[None]):
         while True:
             menu_values = [
                 ("test", "Test connection"),
+                ("sync_tables", "Sync table descriptions"),
                 ("git_commit", "Git commit"),
                 ("git_deploy_validate", "Git deployment validate"),
                 ("git_deploy", "Git deploy"),
@@ -89,6 +92,8 @@ class ThoughtCLIApp(App[None]):
             if action == "test":
                 result = self._test_connection(ts_connection)
                 compact = True
+            elif action == "sync_tables":
+                result = await self._sync_tables(ts_connection)
             elif action == "git_commit":
                 result = await self._git_commit(ts_connection)
             elif action == "git_deploy_validate":
@@ -278,6 +283,112 @@ class ThoughtCLIApp(App[None]):
                 return "Connection Successful"
         except Exception as e:
             return f"Connection Failed: {e}"
+
+    async def _sync_tables(self, ts_connection: TSConnection) -> str:
+        """
+        Sync table descriptions from the connection.
+
+        Allows users to:
+        1. Select a connection to resync tables from
+        2. Choose which tables to resync (or resync all)
+        """
+        try:
+            with ts_connection.v2 as ts_client_v2:
+                # Fetch available connections
+                connection_options = fetch_connection_options(
+                    ts_client_v2.client, ts_connection.metadata_max_size
+                )
+
+                if not connection_options:
+                    return "No connections available to sync"
+
+                # User selects connection
+                selected_connection_id = await self.push_screen_wait(
+                    RadioListDialog(
+                        title="Select Connection",
+                        text="Select a connection to resync tables from",
+                        values=connection_options,
+                    )
+                )
+
+                if selected_connection_id is None:
+                    return "Cancelled"
+
+                # Ask about sync scope
+                sync_scope = await self.push_screen_wait(
+                    RadioListDialog(
+                        title="Choose Tables to Sync",
+                        text="Would you like to sync specific tables, or every table in this connection?",
+                        values=[
+                            ("selected_tables", "Choose specific tables"),
+                            ("all_tables", "Sync all tables"),
+                        ],
+                    )
+                )
+
+                if sync_scope is None:
+                    return "Cancelled"
+
+                # Fetch tables available for selection, scoped to the selected connection
+                table_options = fetch_connection_tables(
+                    ts_client_v2.client,
+                    selected_connection_id,
+                    ts_connection.metadata_max_size,
+                )
+
+                if not table_options:
+                    return "No tables available to sync for this connection"
+
+                if sync_scope == "all_tables":
+                    selected_table_ids = [table_id for table_id, _ in table_options]
+                else:
+                    selected_table_ids = await self.push_screen_wait(
+                        CheckboxListDialog(
+                            title="Select Tables",
+                            text="Select tables to sync",
+                            values=table_options,
+                        )
+                    )
+
+                    if not selected_table_ids:
+                        return "Cancelled"
+
+                # Confirm the selected tables before syncing
+                table_names = dict(table_options)
+                confirmation_text = "\n".join(
+                    f"- {table_names.get(table_id, table_id)}"
+                    for table_id in selected_table_ids
+                )
+                confirmed = await self.push_screen_wait(
+                    ConfirmDialog(
+                        title="Confirm Sync",
+                        text=f"Sync the following tables?\n\n{confirmation_text}",
+                    )
+                )
+
+                if not confirmed:
+                    return "Cancelled"
+
+                # Use SyncMetadata helper to perform the resync
+                sync_handler = SyncMetadata(ts_client_v2.client)
+                response = sync_handler.resync_tables(
+                    connection_id=selected_connection_id,
+                    table_ids=selected_table_ids,
+                )
+
+                response_str = json.dumps(response, indent=4)
+                logger.info(f"Sync response: {response_str}")
+
+                return f"✓ Sync successful!\n\n{response_str}"
+
+        except HTTPError as e:
+            error_msg = f"Sync failed: {e}\n{e.response.text}"
+            logger.error(error_msg)
+            return error_msg
+        except Exception as e:
+            error_msg = f"Sync error: {str(e)}"
+            logger.error(error_msg)
+            return error_msg
 
 
 @click.command()
