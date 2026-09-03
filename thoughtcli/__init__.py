@@ -68,17 +68,19 @@ class ThoughtCLIApp(App[None]):
         ts_connection = TSConnection(TSProfile(**self._config["profiles"][profile]))
 
         while True:
+            menu_values = [
+                ("test", "Test connection"),
+                ("sync_tables", "Sync table descriptions"),
+                ("git_commit", "Git commit"),
+                ("git_deploy_validate", "Git deployment validate"),
+                ("git_deploy", "Git deploy"),
+            ]
+
             action = await self.push_screen_wait(
                 RadioListDialog(
                     title="Main Menu",
                     text="Select an option",
-                    values=[
-                        ("test", "Test connection"),
-                        ("sync_tables", "Sync table descriptions"),
-                        ("git_commit", "Git commit"),
-                        ("git_deploy_validate", "Git deployment validate"),
-                        ("git_deploy", "Git deploy"),
-                    ],
+                    values=menu_values,
                 )
             )
 
@@ -86,8 +88,10 @@ class ThoughtCLIApp(App[None]):
                 break
 
             result = "Unknown option"
+            compact = False
             if action == "test":
                 result = self._test_connection(ts_connection)
+                compact = True
             elif action == "sync_tables":
                 result = await self._sync_tables(ts_connection)
             elif action == "git_commit":
@@ -97,7 +101,7 @@ class ThoughtCLIApp(App[None]):
             elif action == "git_deploy":
                 result = await self._git_deploy(ts_connection)
 
-            await self.push_screen_wait(MessageDialog(text=result))
+            await self.push_screen_wait(MessageDialog(text=result, compact=compact))
 
         self.exit()
 
