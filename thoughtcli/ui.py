@@ -21,7 +21,7 @@ _DIALOG_CSS = """
     Vertical {
         width: 50%;
         height: auto;
-        max-height: 100vh;
+        max-height: 75vh;
         background: $panel;
         border: thick $primary;
         padding: 1 2;
@@ -33,10 +33,42 @@ _DIALOG_CSS = """
         overflow-y: auto;
     }
 
+    RadioButton {
+        padding: 1 2;
+
+        & > .toggle--button {
+            text-style: bold;
+        }
+
+        &.-on > .toggle--button {
+            color: ansi_bright_green;
+            text-style: bold;
+        }
+    }
+
     SelectionList {
         max-height: 50vh;
         overflow-y: auto;
         overflow-x: auto;
+
+        & > .selection-list--button,
+        & > .selection-list--button-highlighted {
+            text-style: bold;
+        }
+
+        & > .selection-list--button-selected,
+        & > .selection-list--button-selected-highlighted {
+            color: ansi_bright_green;
+            text-style: bold;
+        }
+
+        & > .option-list--option {
+            text-style: bold;
+        }
+    }
+
+    Label, Static {
+        text-style: bold;
     }
 
     VerticalScroll {
@@ -208,15 +240,22 @@ class ConfirmDialog(ModalScreen[bool]):
 class MessageDialog(ModalScreen[None]):
     """Modal dialog for displaying a result message."""
 
-    DEFAULT_CSS = f"MessageDialog {{{_DIALOG_CSS}}}"
+    DEFAULT_CSS = (
+        f"MessageDialog {{{_DIALOG_CSS}}} "
+        "MessageDialog Horizontal { align: center middle; } "
+        "MessageDialog VerticalScroll { max-height: 70vh; overflow-y: auto; overflow-x: auto; } "
+        "MessageDialog.-compact Vertical { width: 35vw; max-width: 50%; height: 10; } "
+        "MessageDialog.-compact VerticalScroll { max-height: 30vh; }"
+    )
 
-    def __init__(self, text: str):
-        super().__init__()
+    def __init__(self, text: str, compact: bool = False):
+        super().__init__(classes="-compact" if compact else None)
         self._text = text
 
     def compose(self) -> ComposeResult:
         with Vertical():
-            yield Static(self._text, id="message")
+            with VerticalScroll():
+                yield Static(self._text, id="message")
             with Horizontal():
                 yield Button("OK", id="ok")
 

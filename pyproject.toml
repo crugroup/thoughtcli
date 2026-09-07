@@ -6,7 +6,7 @@ authors = [
 ]
 description = "CLI for Thoughtspot"
 requires-python = ">=3.10"
-version = "0.7.0"
+version = "0.7.1"
 
 dependencies = [
     "thoughtspot_rest_api==2.0.3",
