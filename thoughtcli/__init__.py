@@ -8,7 +8,8 @@ import click
 import yaml
 from requests.exceptions import HTTPError
 from textual import work
-from textual.app import App
+from textual.app import App, ComposeResult
+from textual.widgets import Label
 
 from thoughtspot_rest_api.tsrestapiv1 import (
     MetadataTypes,
@@ -42,11 +43,24 @@ class ThoughtCLIApp(App[None]):
     Button {
         border: round $primary;
     }
+
+    #org-box {
+        dock: top;
+        width: auto;
+        height: 3;
+        padding: 0 1;
+        border: round $primary;
+        text-style: bold;
+        display: none;
+    }
     """
 
     def __init__(self, config: dict):
         super().__init__()
         self._config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("", id="org-box")
 
     def on_mount(self) -> None:
         self._run_main_flow()
@@ -74,6 +88,9 @@ class ThoughtCLIApp(App[None]):
             profile_config.pop("deploy_branches", self._config.get("deploy_branches", []))
             or []
         )
+        org_box = self.query_one("#org-box", Label)
+        org_box.update(f"{profile} | org: {profile_config.get('org_identifier')}")
+        org_box.display = True
         ts_connection = TSConnection(TSProfile(**profile_config))
 
         while True:
