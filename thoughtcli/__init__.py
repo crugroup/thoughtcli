@@ -65,13 +65,25 @@ class ThoughtCLIApp(App[None]):
             self.exit()
             return
 
-        ts_connection = TSConnection(TSProfile(**self._config["profiles"][profile]))
+        profile_config = dict(self._config["profiles"][profile])
+        # Profile-level setting overrides the top-level default (False)
+        allow_commit = bool(
+            profile_config.pop("allow_commit", self._config.get("allow_commit", False))
+        )
+        deploy_branches = list(
+            profile_config.pop("deploy_branches", self._config.get("deploy_branches", []))
+            or []
+        )
+        ts_connection = TSConnection(TSProfile(**profile_config))
 
         while True:
             menu_values = [
                 ("test", "Test connection"),
                 ("sync_tables", "Sync table descriptions"),
-                ("git_commit", "Git commit"),
+            ]
+            if allow_commit:
+                menu_values.append(("git_commit", "Git commit"))
+            menu_values += [
                 ("git_deploy_validate", "Git deployment validate"),
                 ("git_deploy", "Git deploy"),
             ]
@@ -94,12 +106,12 @@ class ThoughtCLIApp(App[None]):
                 compact = True
             elif action == "sync_tables":
                 result = await self._sync_tables(ts_connection)
-            elif action == "git_commit":
+            elif action == "git_commit" and allow_commit:
                 result = await self._git_commit(ts_connection)
             elif action == "git_deploy_validate":
                 result = await self._git_deploy_validate(ts_connection)
             elif action == "git_deploy":
-                result = await self._git_deploy(ts_connection)
+                result = await self._git_deploy(ts_connection, deploy_branches)
 
             await self.push_screen_wait(MessageDialog(text=result, compact=compact))
 
@@ -228,11 +240,20 @@ class ThoughtCLIApp(App[None]):
         except HTTPError as e:
             return f"Deployment validation failed: {e}\n{e.response.text}"
 
-    async def _git_deploy(self, ts_connection: TSConnection) -> str:
+    async def _git_deploy(
+        self, ts_connection: TSConnection, deploy_branches: list[str]
+    ) -> str:
+        if not deploy_branches:
+            return (
+                "Deployment not allowed: no deploy_branches configured "
+                "for this profile in config.yaml"
+            )
         try:
             deploy_branch = await self.push_screen_wait(
-                InputDialog(
-                    title="Deploy branch", text="Please input the deploy branch:"
+                RadioListDialog(
+                    title="Deploy branch",
+                    text="Select the deploy branch",
+                    values=[(branch, branch) for branch in deploy_branches],
                 )
             )
             if not deploy_branch:
