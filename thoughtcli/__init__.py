@@ -100,10 +100,11 @@ class ThoughtCLIApp(App[None]):
             ]
             if allow_commit:
                 menu_values.append(("git_commit", "Git commit"))
-            menu_values += [
-                ("git_deploy_validate", "Git deployment validate"),
-                ("git_deploy", "Git deploy"),
-            ]
+            if deploy_branches:
+                menu_values += [
+                    ("git_deploy_validate", "Git deployment validate"),
+                    ("git_deploy", "Git deploy"),
+                ]
 
             action = await self.push_screen_wait(
                 RadioListDialog(
@@ -125,9 +126,9 @@ class ThoughtCLIApp(App[None]):
                 result = await self._sync_tables(ts_connection)
             elif action == "git_commit" and allow_commit:
                 result = await self._git_commit(ts_connection)
-            elif action == "git_deploy_validate":
+            elif action == "git_deploy_validate" and deploy_branches:
                 result = await self._git_deploy_validate(ts_connection)
-            elif action == "git_deploy":
+            elif action == "git_deploy" and deploy_branches:
                 result = await self._git_deploy(ts_connection, deploy_branches)
 
             await self.push_screen_wait(MessageDialog(text=result, compact=compact))
