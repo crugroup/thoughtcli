@@ -8,7 +8,8 @@ import click
 import yaml
 from requests.exceptions import HTTPError
 from textual import work
-from textual.app import App
+from textual.app import App, ComposeResult
+from textual.widgets import Label
 
 from thoughtspot_rest_api.tsrestapiv1 import (
     MetadataTypes,
@@ -42,11 +43,24 @@ class ThoughtCLIApp(App[None]):
     Button {
         border: round $primary;
     }
+
+    #org-box {
+        dock: top;
+        width: auto;
+        height: 3;
+        padding: 0 1;
+        border: round $primary;
+        text-style: bold;
+        display: none;
+    }
     """
 
     def __init__(self, config: dict):
         super().__init__()
         self._config = config
+
+    def compose(self) -> ComposeResult:
+        yield Label("", id="org-box")
 
     def on_mount(self) -> None:
         self._run_main_flow()
@@ -65,16 +79,32 @@ class ThoughtCLIApp(App[None]):
             self.exit()
             return
 
-        ts_connection = TSConnection(TSProfile(**self._config["profiles"][profile]))
+        profile_config = dict(self._config["profiles"][profile])
+        # Profile-level setting overrides the top-level default (False)
+        allow_commit = bool(
+            profile_config.pop("allow_commit", self._config.get("allow_commit", False))
+        )
+        deploy_branches = list(
+            profile_config.pop("deploy_branches", self._config.get("deploy_branches", []))
+            or []
+        )
+        org_box = self.query_one("#org-box", Label)
+        org_box.update(f"{profile} | org: {profile_config.get('org_identifier')}")
+        org_box.display = True
+        ts_connection = TSConnection(TSProfile(**profile_config))
 
         while True:
             menu_values = [
                 ("test", "Test connection"),
                 ("sync_tables", "Sync table descriptions"),
-                ("git_commit", "Git commit"),
-                ("git_deploy_validate", "Git deployment validate"),
-                ("git_deploy", "Git deploy"),
             ]
+            if allow_commit:
+                menu_values.append(("git_commit", "Git commit"))
+            if deploy_branches:
+                menu_values += [
+                    ("git_deploy_validate", "Git deployment validate"),
+                    ("git_deploy", "Git deploy"),
+                ]
 
             action = await self.push_screen_wait(
                 RadioListDialog(
@@ -94,12 +124,12 @@ class ThoughtCLIApp(App[None]):
                 compact = True
             elif action == "sync_tables":
                 result = await self._sync_tables(ts_connection)
-            elif action == "git_commit":
+            elif action == "git_commit" and allow_commit:
                 result = await self._git_commit(ts_connection)
-            elif action == "git_deploy_validate":
+            elif action == "git_deploy_validate" and deploy_branches:
                 result = await self._git_deploy_validate(ts_connection)
-            elif action == "git_deploy":
-                result = await self._git_deploy(ts_connection)
+            elif action == "git_deploy" and deploy_branches:
+                result = await self._git_deploy(ts_connection, deploy_branches)
 
             await self.push_screen_wait(MessageDialog(text=result, compact=compact))
 
@@ -228,11 +258,20 @@ class ThoughtCLIApp(App[None]):
         except HTTPError as e:
             return f"Deployment validation failed: {e}\n{e.response.text}"
 
-    async def _git_deploy(self, ts_connection: TSConnection) -> str:
+    async def _git_deploy(
+        self, ts_connection: TSConnection, deploy_branches: list[str]
+    ) -> str:
+        if not deploy_branches:
+            return (
+                "Deployment not allowed: no deploy_branches configured "
+                "for this profile in config.yaml"
+            )
         try:
             deploy_branch = await self.push_screen_wait(
-                InputDialog(
-                    title="Deploy branch", text="Please input the deploy branch:"
+                RadioListDialog(
+                    title="Deploy branch",
+                    text="Select the deploy branch",
+                    values=[(branch, branch) for branch in deploy_branches],
                 )
             )
             if not deploy_branch:

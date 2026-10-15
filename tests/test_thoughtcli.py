@@ -131,28 +131,33 @@ async def test_git_deploy_validate_http_error(app, mock_conn):
     assert result == "Deployment validation failed: \nconflict"
 
 
+async def test_git_deploy_errors_without_branches(app, mock_conn):
+    result = await app._git_deploy(mock_conn, [])
+    assert result.startswith("Deployment not allowed")
+
+
 async def test_git_deploy_cancelled_on_branch(app, mock_conn):
     app.push_screen_wait = AsyncMock(return_value=None)
-    result = await app._git_deploy(mock_conn)
+    result = await app._git_deploy(mock_conn, ["main"])
     assert result == "Cancelled"
 
 
 async def test_git_deploy_cancelled_on_type(app, mock_conn):
     app.push_screen_wait = AsyncMock(side_effect=["main", None])
-    result = await app._git_deploy(mock_conn)
+    result = await app._git_deploy(mock_conn, ["main"])
     assert result == "Cancelled"
 
 
 async def test_git_deploy_cancelled_on_policy(app, mock_conn):
     app.push_screen_wait = AsyncMock(side_effect=["main", "DELTA", None])
-    result = await app._git_deploy(mock_conn)
+    result = await app._git_deploy(mock_conn, ["main"])
     assert result == "Cancelled"
 
 
 async def test_git_deploy_success(app, mock_conn):
     mock_conn.v2.client.vcs_git_commits_deploy.return_value = {"status": "success"}
     app.push_screen_wait = AsyncMock(side_effect=["main", "DELTA", "ALL_OR_NONE"])
-    result = await app._git_deploy(mock_conn)
+    result = await app._git_deploy(mock_conn, ["main"])
     assert result == "Deployment successful: " + json.dumps(
         {"status": "success"}, indent=4
     )
@@ -163,5 +168,5 @@ async def test_git_deploy_http_error(app, mock_conn):
         response=MagicMock(text="error")
     )
     app.push_screen_wait = AsyncMock(side_effect=["main", "DELTA", "ALL_OR_NONE"])
-    result = await app._git_deploy(mock_conn)
+    result = await app._git_deploy(mock_conn, ["main"])
     assert result == "Deployment failed: \nerror"
