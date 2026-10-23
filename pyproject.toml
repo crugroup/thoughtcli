@@ -6,7 +6,7 @@ authors = [
 ]
 description = "CLI for Thoughtspot"
 requires-python = ">=3.10"
-version = "0.7.2"
+version = "0.7.3"
 
 dependencies = [
     "thoughtspot_rest_api==2.0.3",
@@ -17,8 +17,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "pytest>=8.0",
-    "pytest-asyncio>=0.23",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4",
 ]
 
 [project.scripts]
