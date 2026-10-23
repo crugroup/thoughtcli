@@ -17,7 +17,12 @@ from thoughtspot_rest_api.tsrestapiv1 import (
 )
 from thoughtspot_rest_api.tsrestapiv2 import TSTypesV2
 
-from thoughtcli.connection import TSProfile, TSConnection,fetch_connection_options, fetch_connection_tables
+from thoughtcli.connection import (
+    TSProfile,
+    TSConnection,
+    fetch_connection_options,
+    fetch_connection_tables,
+)
 from thoughtcli.sync import SyncMetadata
 from thoughtcli.ui import (
     RadioListDialog,
@@ -84,8 +89,13 @@ class ThoughtCLIApp(App[None]):
         allow_commit = bool(
             profile_config.pop("allow_commit", self._config.get("allow_commit", False))
         )
+        allow_sync = bool(
+            profile_config.pop("allow_sync", self._config.get("allow_sync", False))
+        )
         deploy_branches = list(
-            profile_config.pop("deploy_branches", self._config.get("deploy_branches", []))
+            profile_config.pop(
+                "deploy_branches", self._config.get("deploy_branches", [])
+            )
             or []
         )
         org_box = self.query_one("#org-box", Label)
@@ -94,10 +104,9 @@ class ThoughtCLIApp(App[None]):
         ts_connection = TSConnection(TSProfile(**profile_config))
 
         while True:
-            menu_values = [
-                ("test", "Test connection"),
-                ("sync_tables", "Sync table descriptions"),
-            ]
+            menu_values = [("test", "Test connection")]
+            if allow_sync:
+                menu_values.append(("sync_tables", "Sync table descriptions"))
             if allow_commit:
                 menu_values.append(("git_commit", "Git commit"))
             if deploy_branches:
@@ -122,7 +131,7 @@ class ThoughtCLIApp(App[None]):
             if action == "test":
                 result = self._test_connection(ts_connection)
                 compact = True
-            elif action == "sync_tables":
+            elif action == "sync_tables" and allow_sync:
                 result = await self._sync_tables(ts_connection)
             elif action == "git_commit" and allow_commit:
                 result = await self._git_commit(ts_connection)

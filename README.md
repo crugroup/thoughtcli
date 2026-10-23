@@ -1,7 +1,10 @@
 # ThoughtCLI
 
-CLI for Thoughtspot. Wouldn't be needed if Thoughtspot Devs didn't take 6
-months to implement a GUI for Git support. It still isn't done. This took 5 hours to build.
+CLI for ThoughtSpot. Use it to:
+
+- commit content to Git
+- deploy content from Git
+- sync table descriptions from your data connections
 
 ## Installation
 
@@ -15,40 +18,50 @@ Place a `config.yaml` file in `~/.thoughtcli/` with the following content:
 
 ```yaml
 allow_commit: false
+allow_sync: false
 deploy_branches: []
 
 profiles:
   dev:
-    server_url: https://your domain.thoughtspot.cloud
+    server_url: https://your-domain.thoughtspot.cloud
     username: user@domain.com
-    password: yourpassword
+    password: your_password
     org_identifier: 123456789
     allow_commit: true
+    allow_sync: true
     deploy_branches:
       - name_of_branch
 ```
 
-If you are using a secret key the configuration file should look like this:
+If you are using a secret key, the configuration file should look like this:
 
 ```yaml
 allow_commit: false
+allow_sync: false
 deploy_branches: []
 
 profiles:
   dev:
-    server_url: https://your domain.thoughtspot.cloud
+    server_url: https://your-domain.thoughtspot.cloud
     username: user@domain.com
-    secret_key: aasdf1234
+    secret_key: your_secret_key
     org_identifier: 123456789
     allow_commit: true
+    allow_sync: true
     deploy_branches:
       - name_of_branch
 ```
 
-`allow_commit` enables the `git commit` option
-`deploy_branches` enables the deployment option and lists the available branches to deploy defined in the file.
+- `allow_commit` enables the `Git commit` option
+- `allow_sync` enables the `Sync table descriptions` option
+- `deploy_branches` lists the available branches to deploy defined in the config and enables the `Git deployment validate` and `Git deploy` options
 
-You can also set the patho to the `config.yaml` file with `THOUGHTCLI_CONFIG_PATH` environment variable.
+Put these settings at the top level or inside a profile.
+A top-level setting applies to every profile.
+A profile setting overrides the top-level one.
+If a setting is missing, its menu options are hidden by default.
+
+You can also set the path to the `config.yaml` file with the `THOUGHTCLI_CONFIG_PATH` environment variable.
 
 ## Usage
 

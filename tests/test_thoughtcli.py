@@ -170,3 +170,143 @@ async def test_git_deploy_http_error(app, mock_conn):
     app.push_screen_wait = AsyncMock(side_effect=["main", "DELTA", "ALL_OR_NONE"])
     result = await app._git_deploy(mock_conn, ["main"])
     assert result == "Deployment failed: \nerror"
+
+
+async def get_menu_labels(config: dict) -> list[str]:
+    """Run the app with this config and return the labels on the main menu."""
+    app = ThoughtCLIApp(config=config)
+    app.push_screen_wait = AsyncMock(side_effect=["dev", None])
+    async with app.run_test() as pilot:
+        await pilot.pause()
+    menu = app.push_screen_wait.call_args_list[1].args[0]
+    return [label for _, label in menu._values]
+
+
+async def test_sync_hidden_by_default():
+    labels = await get_menu_labels(
+        {
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                }
+            }
+        }
+    )
+    assert "Sync table descriptions" not in labels
+
+
+async def test_sync_shown_when_allowed_at_top_level():
+    labels = await get_menu_labels(
+        {
+            "allow_sync": True,
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                }
+            },
+        }
+    )
+    assert "Sync table descriptions" in labels
+
+
+async def test_sync_shown_when_allowed_in_profile():
+    labels = await get_menu_labels(
+        {
+            "allow_sync": False,
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                    "allow_sync": True,
+                }
+            },
+        }
+    )
+    assert "Sync table descriptions" in labels
+
+
+async def test_sync_profile_setting_overrides_top_level():
+    labels = await get_menu_labels(
+        {
+            "allow_sync": True,
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                    "allow_sync": False,
+                }
+            },
+        }
+    )
+    assert "Sync table descriptions" not in labels
+
+
+async def test_commit_hidden_by_default():
+    labels = await get_menu_labels(
+        {
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                }
+            }
+        }
+    )
+    assert "Git commit" not in labels
+
+
+async def test_commit_shown_when_allowed_at_top_level():
+    labels = await get_menu_labels(
+        {
+            "allow_commit": True,
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                }
+            },
+        }
+    )
+    assert "Git commit" in labels
+
+
+async def test_commit_shown_when_allowed_in_profile():
+    labels = await get_menu_labels(
+        {
+            "allow_commit": False,
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                    "allow_commit": True,
+                }
+            },
+        }
+    )
+    assert "Git commit" in labels
+
+
+async def test_commit_profile_setting_overrides_top_level():
+    labels = await get_menu_labels(
+        {
+            "allow_commit": True,
+            "profiles": {
+                "dev": {
+                    "server_url": "https://example.thoughtspot.cloud",
+                    "username": "u",
+                    "password": "p",
+                    "allow_commit": False,
+                }
+            },
+        }
+    )
+    assert "Git commit" not in labels

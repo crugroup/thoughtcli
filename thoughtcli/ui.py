@@ -268,7 +268,9 @@ class MessageDialog(ModalScreen[None]):
     def _fit_scroll(self) -> None:
         # Reserve rows for dialog border/padding and the OK button row so it never gets clipped
         reserved = 11
-        self.query_one(VerticalScroll).styles.max_height = max(3, self.size.height - reserved)
+        self.query_one(VerticalScroll).styles.max_height = max(
+            3, self.size.height - reserved
+        )
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         self.dismiss()
