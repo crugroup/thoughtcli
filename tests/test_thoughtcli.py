@@ -101,25 +101,40 @@ async def test_git_commit_http_error(app, mock_conn):
     assert result == "Commit Failed: \nbad request"
 
 
+async def test_git_deploy_validate_errors_without_branches(app, mock_conn):
+    result = await app._git_deploy_validate(mock_conn, [])
+    assert result.startswith("Deployment validation not allowed")
+
+
 async def test_git_deploy_validate_cancelled_on_source(app, mock_conn):
     app.push_screen_wait = AsyncMock(return_value=None)
-    result = await app._git_deploy_validate(mock_conn)
+    result = await app._git_deploy_validate(mock_conn, ["target-branch"])
     assert result == "Cancelled"
 
 
 async def test_git_deploy_validate_cancelled_on_target(app, mock_conn):
     app.push_screen_wait = AsyncMock(side_effect=["source-branch", None])
-    result = await app._git_deploy_validate(mock_conn)
+    result = await app._git_deploy_validate(mock_conn, ["target-branch"])
     assert result == "Cancelled"
 
 
 async def test_git_deploy_validate_success(app, mock_conn):
     mock_conn.v2.client.vcs_git_branches_validate.return_value = {"status": "success"}
     app.push_screen_wait = AsyncMock(side_effect=["source-branch", "target-branch"])
-    result = await app._git_deploy_validate(mock_conn)
+    result = await app._git_deploy_validate(mock_conn, ["target-branch"])
     assert result == "Deployment validation successful: " + json.dumps(
         {"status": "success"}, indent=4
     )
+    mock_conn.v2.client.vcs_git_branches_validate.assert_called_once_with(
+        source_branch_name="source-branch", target_branch_name="target-branch"
+    )
+
+
+async def test_git_deploy_validate_target_picker_lists_deploy_branches(app, mock_conn):
+    app.push_screen_wait = AsyncMock(side_effect=["source-branch", None])
+    await app._git_deploy_validate(mock_conn, ["dev", "prod"])
+    target_dialog = app.push_screen_wait.await_args_list[1].args[0]
+    assert target_dialog._values == [("dev", "dev"), ("prod", "prod")]
 
 
 async def test_git_deploy_validate_http_error(app, mock_conn):
@@ -127,7 +142,7 @@ async def test_git_deploy_validate_http_error(app, mock_conn):
         response=MagicMock(text="conflict")
     )
     app.push_screen_wait = AsyncMock(side_effect=["source-branch", "target-branch"])
-    result = await app._git_deploy_validate(mock_conn)
+    result = await app._git_deploy_validate(mock_conn, ["target-branch"])
     assert result == "Deployment validation failed: \nconflict"
 
 
