@@ -54,7 +54,7 @@ profiles:
 
 - `allow_commit` enables the `Git commit` option
 - `allow_sync` enables the `Sync table descriptions` option
-- `deploy_branches` lists the available branches to deploy defined in the config and enables the `Git deployment validate` and `Git deploy` options
+- `deploy_branches` lists the branches you can pick as the target in `Git deployment validate` and as the branch in `Git deploy`, and enables both options
 
 Put these settings at the top level or inside a profile.
 A top-level setting applies to every profile.

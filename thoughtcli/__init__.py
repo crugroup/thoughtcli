@@ -136,7 +136,7 @@ class ThoughtCLIApp(App[None]):
             elif action == "git_commit" and allow_commit:
                 result = await self._git_commit(ts_connection)
             elif action == "git_deploy_validate" and deploy_branches:
-                result = await self._git_deploy_validate(ts_connection)
+                result = await self._git_deploy_validate(ts_connection, deploy_branches)
             elif action == "git_deploy" and deploy_branches:
                 result = await self._git_deploy(ts_connection, deploy_branches)
 
@@ -238,7 +238,14 @@ class ThoughtCLIApp(App[None]):
         except HTTPError as e:
             return f"Commit Failed: {e}\n{e.response.text}"
 
-    async def _git_deploy_validate(self, ts_connection: TSConnection) -> str:
+    async def _git_deploy_validate(
+        self, ts_connection: TSConnection, deploy_branches: list[str]
+    ) -> str:
+        if not deploy_branches:
+            return (
+                "Deployment validation not allowed: no deploy_branches configured "
+                "for this profile in config.yaml"
+            )
         try:
             source_branch = await self.push_screen_wait(
                 InputDialog(
@@ -249,8 +256,10 @@ class ThoughtCLIApp(App[None]):
                 return "Cancelled"
 
             target_branch = await self.push_screen_wait(
-                InputDialog(
-                    title="Target branch", text="Please input the target branch:"
+                RadioListDialog(
+                    title="Target branch",
+                    text="Select the target branch",
+                    values=[(branch, branch) for branch in deploy_branches],
                 )
             )
             if not target_branch:
